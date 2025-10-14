@@ -1,0 +1,111 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEachSourcetable",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.table_name",
+						"type": "Expression"
+					},
+					"batchCount": 2,
+					"activities": [
+						{
+							"name": "Parquet2",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "ParquetSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "ParquetReadSettings"
+									}
+								},
+								"sink": {
+									"type": "SnowflakeV2Sink",
+									"importSettings": {
+										"type": "SnowflakeImportCopyCommand"
+									}
+								},
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "AzureBlobStorage2",
+										"type": "LinkedServiceReference"
+									},
+									"path": "stagedata"
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Parquet1",
+									"type": "DatasetReference",
+									"parameters": {
+										"container_name": "stagedata",
+										"folder_name": {
+											"value": "@pipeline().parameters.folder_name",
+											"type": "Expression"
+										},
+										"file_name": {
+											"value": "@concat(\n    item(),\n    '.parquet'\n)",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "SnowchinookDS",
+									"type": "DatasetReference",
+									"parameters": {
+										"schema_name": "STAGE",
+										"table_name": {
+											"value": "@toUpper(item())",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"folder_name": {
+				"type": "string"
+			},
+			"table_name": {
+				"type": "array",
+				"defaultValue": [
+					"Artist",
+					"Album",
+					"Customer",
+					"Genre",
+					"Invoice",
+					"InvoiceLine"
+				]
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-10-14T05:19:52Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

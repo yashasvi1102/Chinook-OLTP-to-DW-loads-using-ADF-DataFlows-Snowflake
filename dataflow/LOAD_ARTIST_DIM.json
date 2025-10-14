@@ -1,0 +1,82 @@
+{
+	"name": "LOAD_ARTIST_DIM",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "SnowchinookDS",
+						"type": "DatasetReference"
+					},
+					"name": "Artiststage"
+				},
+				{
+					"dataset": {
+						"referenceName": "SnowchinookDS",
+						"type": "DatasetReference"
+					},
+					"name": "sourceartistdim"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "SnowchinookDS",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "join1"
+				},
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "derivedColumn1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          ARTISTID as decimal(38,0),",
+				"          NAME as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> Artiststage",
+				"source(output(",
+				"          ARTIST_KEY as decimal(10,0),",
+				"          ARTIST_ID as decimal(10,0),",
+				"          ARTIST_NAME as string,",
+				"          SOURCE_ID as string,",
+				"          DATE_TO_WAREHOUSE as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceartistdim",
+				"Artiststage, sourceartistdim join(ARTISTID == ARTIST_ID,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"derivedColumn1 alterRow(updateIf(ARTISTID==ARTIST_ID),",
+				"     insertIf(iifNull(ARTIST_ID,0,ARTIST_ID)==0)) ~> alterRow1",
+				"join1 derive(SOURCE_ID = 0) ~> derivedColumn1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:true,",
+				"     insertable:true,",
+				"     updateable:true,",
+				"     upsertable:true,",
+				"     keys:['ARTISTID'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     stageInsert: true) ~> sink1"
+			]
+		}
+	}
+}
